@@ -1783,6 +1783,7 @@ export function InteractiveDemo() {
 					const currentGrants = Array.isArray(data.grants) ? data.grants.length : 0;
 					const resolved =
 						(currentStatus === "active" && init?.status !== "active") ||
+						currentStatus === "claimed" ||
 						(init !== null && currentGrants > init.grantCount);
 					if (resolved) {
 						if (claimPollingRef.current) { clearInterval(claimPollingRef.current); claimPollingRef.current = null; }

@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
 	try {
 		const result = await session.client.agentStatus(agentId);
-		if (result.status === "active") {
+		if (result.status === "active" || result.status === "claimed") {
 			session.pendingApproval = null;
 			session.lastAgentId = agentId;
 		}
