@@ -1653,6 +1653,7 @@ export function InteractiveDemo() {
 	const [input, setInput] = useState("");
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [wtPromptIdx, setWtPromptIdx] = useState(0);
+	const usedGuidedFirstRef = useRef(false);
 	const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
 	const [awaitingApproval, setAwaitingApproval] = useState(false);
 	const [approvedCount, setApprovedCount] = useState(0);
@@ -1668,7 +1669,7 @@ export function InteractiveDemo() {
 
 	const { active: activePhases, completed: completedPhases, discoveredProviders, agentConnections, toolsByPhase } = derivePhases(messages);
 
-	const stepComplete = wtPromptIdx === 0 || (wtPromptIdx === 1 && (capturedUrl !== null || completedPhases.has("execution"))) || (wtPromptIdx === 2 && completedPhases.has("claim")) || wtPromptIdx >= 3;
+	const stepComplete = wtPromptIdx === 0 || (wtPromptIdx === 1 && (capturedUrl !== null || completedPhases.has("execution"))) || (wtPromptIdx === 2 && (usedGuidedFirstRef.current ? completedPhases.has("claim") : (capturedUrl !== null || completedPhases.has("execution")))) || wtPromptIdx >= 3;
 	const currentPrompt = isGuided && !isStreaming && !awaitingApproval && stepComplete
 		? (WALKTHROUGH_PROMPTS[wtPromptIdx].prompt ?? (WALKTHROUGH_PROMPTS[wtPromptIdx].promptTemplate ?? ""))
 		: null;
@@ -1922,7 +1923,12 @@ export function InteractiveDemo() {
 	const onSubmit = useCallback((e: FormEvent) => {
 		e.preventDefault();
 		if (!input.trim() || isStreaming) return;
-		if (isFirstPrompt) setWtPromptIdx((prev) => prev + 1);
+		if (isFirstPrompt) {
+			const recommended = WALKTHROUGH_PROMPTS[0].prompt ?? "";
+			const usedRecommended = input.trim() === recommended.trim();
+			setWtPromptIdx(usedRecommended ? 1 : 2);
+			usedGuidedFirstRef.current = usedRecommended;
+		}
 		sendMessage({ text: input });
 		setInput("");
 	}, [input, isStreaming, isFirstPrompt, sendMessage]);
