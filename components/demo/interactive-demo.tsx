@@ -1155,7 +1155,7 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
 
 					<div className="text-[13px] sm:text-[14px] text-foreground/55 leading-[1.7] sm:leading-[1.75] space-y-3" style={{ fontFamily: "var(--font-content), Georgia, serif" }}>
 						<p>
-							This demo connects to the <strong className="text-foreground/75">Agent Auth Directory</strong> — our official provider registry. It currently has two providers:
+							This demo connects to the <strong className="text-foreground/75">Agent Auth Directory</strong> — a public directory of services. It currently has two providers:
 						</p>
 						<div className="space-y-2">
 							<div className="flex items-start gap-2.5 sm:gap-3 px-2.5 sm:px-3 py-2 sm:py-2.5 border border-foreground/6 bg-foreground/2">
