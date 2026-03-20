@@ -160,7 +160,7 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 				<div className="flex items-center gap-2.5 px-4 py-3 border-b border-foreground/8 shrink-0">
 					<Icon className="w-3.5 h-3.5 text-foreground/30" />
 					<span className="text-[13px] font-medium text-foreground/70 flex-1">{label}</span>
-				<span className={`text-[10px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 ${hasError ? "text-destructive/60 bg-destructive/5 border border-destructive/10" : tool.state === "running" ? "text-foreground/35 bg-foreground/3 border border-foreground/8 tool-running" : "text-emerald-600/70 dark:text-emerald-400/70 bg-emerald-500/5 border border-emerald-500/12"}`}>
+				<span className={`text-[10px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 ${hasError ? "text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20" : tool.state === "running" ? "text-foreground/35 bg-foreground/3 border border-foreground/8 tool-running" : "text-emerald-600/70 dark:text-emerald-400/70 bg-emerald-500/5 border border-emerald-500/12"}`}>
 					{tool.state === "running" ? "running" : hasError ? "error" : "done"}
 				</span>
 					<button type="button" onClick={onClose} className="p-1 text-foreground/30 hover:text-foreground/60 transition-colors cursor-pointer">
@@ -177,7 +177,7 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 				{tool.output != null && (
 					<div>
 						<span className="text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/30 block mb-1.5">Output</span>
-						<pre className={`text-[12px] font-mono whitespace-pre-wrap break-all leading-relaxed p-3 border max-h-[280px] overflow-y-auto ${hasError ? "text-destructive/60 bg-destructive/3 border-destructive/10" : "text-foreground/50 bg-foreground/2 border-foreground/6"}`}>{formatJson(tool.output, false)}</pre>
+						<pre className={`text-[12px] font-mono whitespace-pre-wrap break-all leading-relaxed p-3 border max-h-[280px] overflow-y-auto ${hasError ? "text-red-600 dark:text-red-400 bg-red-500/5 border-red-500/15" : "text-foreground/50 bg-foreground/2 border-foreground/6"}`}>{formatJson(tool.output, false)}</pre>
 						</div>
 					)}
 				{tool.state === "running" && (
@@ -482,7 +482,7 @@ function Sidebar({
 																animate={tc.state === "running" ? { opacity: [0.6, 1, 0.6], scale: 1 } : { opacity: 1, scale: 1 }}
 																transition={tc.state === "running" ? { opacity: { duration: 1.8, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 0.2 } } : { duration: 0.2, delay: j * 0.04 }}
 																onClick={() => setSelectedTool(tc)}
-																className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono border transition-colors cursor-pointer ${tc.state === "running" ? "border-foreground/10 bg-foreground/3 text-foreground/35 hover:bg-foreground/5 tool-running" : hasErr ? "border-destructive/15 bg-destructive/3 text-destructive/50 hover:bg-destructive/6" : "border-foreground/6 bg-foreground/3 text-foreground/35 hover:bg-foreground/5 hover:text-foreground/50"}`}
+																className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono border transition-colors cursor-pointer ${tc.state === "running" ? "border-foreground/10 bg-foreground/3 text-foreground/35 hover:bg-foreground/5 tool-running" : hasErr ? "border-red-500/25 bg-red-500/8 text-red-600 dark:text-red-400 hover:bg-red-500/12" : "border-foreground/6 bg-foreground/3 text-foreground/35 hover:bg-foreground/5 hover:text-foreground/50"}`}
 															>
 																{tc.state === "running" ? <span className="animate-pulse"><TIcon className="w-2.5 h-2.5" /></span> : hasErr ? <ExclamationTriangleIcon className="w-2.5 h-2.5" /> : <TIcon className="w-2.5 h-2.5" />}
 																{meta.label}
@@ -751,7 +751,7 @@ function ToolCallsAccordion({ toolParts }: { toolParts: ToolPart[] }) {
 				<span>{toolParts.length} tool call{toolParts.length !== 1 ? "s" : ""}</span>
 			{runningCount > 0 && <span className="w-2.5 h-2.5 rounded-full bg-foreground/15 tool-running shrink-0" />}
 			{runningCount === 0 && errorCount === 0 && <CheckIcon className="w-2.5 h-2.5 text-emerald-500/60" />}
-				{errorCount > 0 && <ExclamationTriangleIcon className="w-2.5 h-2.5 text-destructive/50" />}
+				{errorCount > 0 && <ExclamationTriangleIcon className="w-2.5 h-2.5 text-red-600 dark:text-red-400" />}
 			</button>
 			<AnimatePresence>
 				{expanded && (
@@ -776,7 +776,7 @@ function ToolDetailRow({ name, label, icon: Icon, state, input, output }: { name
 	return (
 		<div>
 		<button type="button" onClick={() => state !== "running" && setExpanded(!expanded)} className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-foreground/2 transition-colors ${state === "running" ? "cursor-default tool-running" : "cursor-pointer"}`}>
-			{state === "running" ? <Icon className="w-3 h-3 text-foreground/25 shrink-0" /> : hasError ? <ExclamationTriangleIcon className="w-3 h-3 text-destructive/50 shrink-0" /> : <Icon className="w-3 h-3 text-foreground/20 shrink-0" />}
+			{state === "running" ? <Icon className="w-3 h-3 text-foreground/25 shrink-0" /> : hasError ? <ExclamationTriangleIcon className="w-3 h-3 text-red-600 dark:text-red-400 shrink-0" /> : <Icon className="w-3 h-3 text-foreground/20 shrink-0" />}
 				<span className="text-foreground/40 flex-1">{label}</span>
 				{state === "done" && !hasError && <CheckIcon className="w-2.5 h-2.5 text-emerald-500/60" />}
 				{state === "done" && res && !hasError && <ToolCallSummary toolName={name} res={res} />}
@@ -820,7 +820,7 @@ function InlineToolPills({ toolParts }: { toolParts: ToolPart[] }) {
 					initial={{ opacity: 0, scale: 0.9, y: 4 }}
 					animate={g.state === "running" ? { opacity: [0.6, 1, 0.6], scale: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
 					transition={g.state === "running" ? { opacity: { duration: 1.8, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 0.25 }, y: { duration: 0.25, delay: i * 0.05 } } : { duration: 0.25, delay: i * 0.05 }}
-					className={`inline-flex items-center gap-1 px-2 py-0.5 border text-[11px] font-mono ${g.state === "running" ? "border-foreground/10 bg-foreground/2 text-foreground/35 tool-running" : hasError ? "border-destructive/15 bg-destructive/3 text-destructive/50" : "border-foreground/6 text-foreground/30"}`}
+					className={`inline-flex items-center gap-1 px-2 py-0.5 border text-[11px] font-mono ${g.state === "running" ? "border-foreground/10 bg-foreground/2 text-foreground/35 tool-running" : hasError ? "border-red-500/25 bg-red-500/8 text-red-600 dark:text-red-400" : "border-foreground/6 text-foreground/30"}`}
 				>
 					{g.state === "running" ? <span className="animate-pulse"><Icon className="w-2.5 h-2.5" /></span> : hasError ? <ExclamationTriangleIcon className="w-2.5 h-2.5" /> : <Icon className="w-2.5 h-2.5" />}
 						{meta.label}{g.count > 1 && <span className="text-foreground/20">×{g.count}</span>}
