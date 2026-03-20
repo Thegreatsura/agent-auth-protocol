@@ -277,7 +277,7 @@ export function ProtocolOverview() {
 						{
 							label: "SDKs",
 							title: "Official implementations",
-							href: "/docs/implementations",
+							href: "/docs/sdks",
 							icon: CodeIcon,
 						},
 						{

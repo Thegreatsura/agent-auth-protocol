@@ -484,7 +484,7 @@ function Sidebar({
 																onClick={() => setSelectedTool(tc)}
 																className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono border transition-colors cursor-pointer ${tc.state === "running" ? "border-foreground/10 bg-foreground/3 text-foreground/35 hover:bg-foreground/5 tool-running" : hasErr ? "border-destructive/15 bg-destructive/3 text-destructive/50 hover:bg-destructive/6" : "border-foreground/6 bg-foreground/3 text-foreground/35 hover:bg-foreground/5 hover:text-foreground/50"}`}
 															>
-																{tc.state === "running" ? <span className="animate-spin" style={{ animationDuration: "2.5s" }}><TIcon className="w-2.5 h-2.5" /></span> : hasErr ? <ExclamationTriangleIcon className="w-2.5 h-2.5" /> : <TIcon className="w-2.5 h-2.5" />}
+																{tc.state === "running" ? <span className="animate-pulse"><TIcon className="w-2.5 h-2.5" /></span> : hasErr ? <ExclamationTriangleIcon className="w-2.5 h-2.5" /> : <TIcon className="w-2.5 h-2.5" />}
 																{meta.label}
 																{tc.state === "done" && !hasErr && <CheckIcon className="w-2 h-2 text-emerald-500/70" />}
 															</motion.button>
@@ -822,7 +822,7 @@ function InlineToolPills({ toolParts }: { toolParts: ToolPart[] }) {
 					transition={g.state === "running" ? { opacity: { duration: 1.8, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 0.25 }, y: { duration: 0.25, delay: i * 0.05 } } : { duration: 0.25, delay: i * 0.05 }}
 					className={`inline-flex items-center gap-1 px-2 py-0.5 border text-[11px] font-mono ${g.state === "running" ? "border-foreground/10 bg-foreground/2 text-foreground/35 tool-running" : hasError ? "border-destructive/15 bg-destructive/3 text-destructive/50" : "border-foreground/6 text-foreground/30"}`}
 				>
-					{g.state === "running" ? <span className="animate-spin" style={{ animationDuration: "2.5s" }}><Icon className="w-2.5 h-2.5" /></span> : hasError ? <ExclamationTriangleIcon className="w-2.5 h-2.5" /> : <Icon className="w-2.5 h-2.5" />}
+					{g.state === "running" ? <span className="animate-pulse"><Icon className="w-2.5 h-2.5" /></span> : hasError ? <ExclamationTriangleIcon className="w-2.5 h-2.5" /> : <Icon className="w-2.5 h-2.5" />}
 						{meta.label}{g.count > 1 && <span className="text-foreground/20">×{g.count}</span>}
 						{g.state === "done" && <CheckIcon className="w-2 h-2 text-emerald-500/70" />}
 					</motion.span>
