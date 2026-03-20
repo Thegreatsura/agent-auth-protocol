@@ -2054,7 +2054,7 @@ export function InteractiveDemo() {
 											<input
 												value={input}
 												onChange={(e) => setInput(e.target.value)}
-												placeholder={isComplete ? "Explore freely — ask anything…" : "Type something else…"}
+												placeholder={isComplete ? "Ask Anything..." : "Type something else…"}
 												className="flex-1 bg-transparent text-[13px] sm:text-[14px] outline-none placeholder:text-foreground/25 text-foreground/80 min-w-0"
 											/>
 											<button type="submit" disabled={!input.trim()} className="p-1.5 sm:p-2 text-foreground/30 hover:text-foreground/60 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0">
