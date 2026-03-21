@@ -268,16 +268,16 @@ function AgentIdBadge({ connections }: { connections: AgentConnection[] }) {
 						>
 							<div className="px-3.5 py-3 space-y-2.5">
 								<div className="flex items-center gap-2">
-									<IdCardIcon className="w-3.5 h-3.5 text-foreground/30" />
-									<span className="text-[11px] font-mono uppercase tracking-[0.12em] text-foreground/35">
+									<IdCardIcon className="w-3.5 h-3.5 text-foreground/45" />
+									<span className="text-[11px] font-mono uppercase tracking-[0.12em] text-foreground/50">
 										Agent Identity
 									</span>
-									<button type="button" onClick={() => setOpen(false)} className="ml-auto p-0.5 text-foreground/25 hover:text-foreground/50 transition-colors cursor-pointer">
+									<button type="button" onClick={() => setOpen(false)} className="ml-auto p-0.5 text-foreground/35 hover:text-foreground/60 transition-colors cursor-pointer">
 										<Cross2Icon className="w-3 h-3" />
 									</button>
 								</div>
-								<p className="text-[12.5px] text-foreground/50 leading-[1.7]" style={{ fontFamily: "var(--font-sans), sans-serif" }}>
-									An <strong className="text-foreground/70">Agent ID</strong> is a unique identifier assigned to the agent when it registers with a provider. It{"'"}s tied to the agent{"'"}s <strong className="text-foreground/70">Ed25519 keypair</strong> and used to sign every request — so the provider can verify who{"'"}s calling, what they{"'"}re allowed to do, and trace every action back to this identity.
+								<p className="text-[12.5px] text-foreground/60 leading-[1.7]" style={{ fontFamily: "var(--font-sans), sans-serif" }}>
+									An <strong className="text-foreground/80">Agent ID</strong> is a unique identifier assigned to the agent when it registers with a provider. It{"'"}s tied to the agent{"'"}s <strong className="text-foreground/80">Ed25519 keypair</strong> and used to sign every request — so the provider can verify who{"'"}s calling, what they{"'"}re allowed to do, and trace every action back to this identity.
 								</p>
 								<div className="space-y-1.5">
 									{connections.map((conn) => (
@@ -287,11 +287,11 @@ function AgentIdBadge({ connections }: { connections: AgentConnection[] }) {
 													{conn.mode}
 												</span>
 											</div>
-											<p className="text-[11px] font-mono text-foreground/45 break-all leading-relaxed">
+											<p className="text-[11px] font-mono text-foreground/55 break-all leading-relaxed">
 												{conn.agentId}
 											</p>
 											{conn.providerUrl && (
-												<p className="text-[10px] font-mono text-foreground/25 mt-1 truncate">
+												<p className="text-[10px] font-mono text-foreground/40 mt-1 truncate">
 													{conn.providerUrl.replace(/^https?:\/\//, "")}
 												</p>
 											)}
@@ -302,7 +302,7 @@ function AgentIdBadge({ connections }: { connections: AgentConnection[] }) {
 									href="/specification#53-agent-registration"
 									target="_blank"
 									rel="noopener noreferrer"
-									className="inline-flex items-center gap-1 text-[11px] font-mono text-foreground/25 hover:text-foreground/50 underline underline-offset-2 decoration-foreground/10 hover:decoration-foreground/30 transition-colors"
+									className="inline-flex items-center gap-1 text-[11px] font-mono text-foreground/40 hover:text-foreground/60 underline underline-offset-2 decoration-foreground/15 hover:decoration-foreground/35 transition-colors"
 								>
 									§5.3 Agent Registration
 									<ExternalLinkIcon className="w-2.5 h-2.5" />
@@ -414,7 +414,7 @@ function Sidebar({
 										{phase.title}
 									</span>
 									{isCollapsedDone && (
-										<ChevronRightIcon className={`w-3 h-3 text-foreground/20 transition-transform ${expandedId === phase.id ? "rotate-90" : ""}`} />
+										<ChevronRightIcon className={`w-3 h-3 text-foreground/35 transition-transform ${expandedId === phase.id ? "rotate-90" : ""}`} />
 									)}
 								</button>
 								<AnimatePresence initial={false}>
@@ -563,10 +563,10 @@ function ApprovalCard({
 				</div>
 				{userCode && (
 					<div className="flex items-center gap-2.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-foreground/3 border border-foreground/6">
-						<span className="text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/35">
+						<span className="text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/50">
 							Code
 						</span>
-						<span className="text-[15px] font-mono font-semibold tracking-[0.2em] text-foreground/75">
+						<span className="text-[15px] font-mono font-semibold tracking-[0.2em] text-foreground/85">
 							{userCode}
 						</span>
 					</div>
@@ -678,11 +678,11 @@ function ChoiceCard({
 											: "border-foreground/10 hover:border-foreground/20 hover:bg-foreground/3 cursor-pointer"
 								}`}
 							>
-								<span className={`text-[12px] sm:text-[13px] font-medium ${isSelected ? "text-foreground/70" : isDisabled ? "text-foreground/40" : "text-foreground/55"}`}>
+								<span className={`text-[12px] sm:text-[13px] font-medium ${isSelected ? "text-foreground/80" : isDisabled ? "text-foreground/50" : "text-foreground/70"}`}>
 									{opt.label}
 								</span>
 								{opt.description && (
-									<span className={`text-[11px] leading-relaxed ${isSelected ? "text-foreground/40" : "text-foreground/25"}`}>
+									<span className={`text-[11px] leading-relaxed ${isSelected ? "text-foreground/55" : "text-foreground/40"}`}>
 										{opt.description}
 									</span>
 								)}
@@ -881,7 +881,7 @@ function TextBlock({ text }: { text: string }) {
 						</a>
 					),
 					blockquote: ({ children }) => (
-						<blockquote className="border-l-2 border-foreground/15 pl-3 my-2 text-foreground/50 italic">
+						<blockquote className="border-l-2 border-foreground/20 pl-3 my-2 text-foreground/60 italic">
 							{children}
 						</blockquote>
 					),
@@ -894,7 +894,7 @@ function TextBlock({ text }: { text: string }) {
 					thead: ({ children }) => <thead className="border-b border-foreground/12">{children}</thead>,
 					th: ({ children }) => <th className="text-left py-1.5 px-2 text-foreground/60 font-medium text-[12px]">{children}</th>,
 					td: ({ children }) => <td className="py-1.5 px-2 border-b border-foreground/6 text-foreground/55">{children}</td>,
-					del: ({ children }) => <del className="text-foreground/40">{children}</del>,
+					del: ({ children }) => <del className="text-foreground/50">{children}</del>,
 					img: ({ src, alt }) => (
 						<img src={src} alt={alt ?? ""} className="max-w-full my-2 border border-foreground/8" />
 					),
@@ -1342,14 +1342,14 @@ function ToolIntegrationItem({ tool }: { tool: ToolIntegration }) {
 				onClick={() => setExpanded(!expanded)}
 				className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-foreground/3 transition-colors cursor-pointer"
 			>
-				<span className="w-8 h-8 flex items-center justify-center bg-foreground/5 border border-foreground/8 text-foreground/40 shrink-0">
+				<span className="w-8 h-8 flex items-center justify-center bg-foreground/5 border border-foreground/8 text-foreground/55 shrink-0">
 					<ToolIcon className="w-4 h-4" />
 				</span>
 				<div className="flex-1 min-w-0 text-left">
-					<p className="text-[13.5px] font-medium text-foreground/70">{tool.name}</p>
-					<p className="text-[12px] text-foreground/35 truncate">{tool.description}</p>
+					<p className="text-[13.5px] font-medium text-foreground/80">{tool.name}</p>
+					<p className="text-[12px] text-foreground/50 truncate">{tool.description}</p>
 				</div>
-				<ChevronRightIcon className={`w-3.5 h-3.5 text-foreground/20 transition-transform shrink-0 ${expanded ? "rotate-90" : ""}`} />
+				<ChevronRightIcon className={`w-3.5 h-3.5 text-foreground/35 transition-transform shrink-0 ${expanded ? "rotate-90" : ""}`} />
 			</button>
 			<AnimatePresence initial={false}>
 				{expanded && (
@@ -1374,19 +1374,19 @@ function ToolIntegrationItem({ tool }: { tool: ToolIntegration }) {
 							)}
 							<ol className="space-y-1.5">
 								{tool.installSteps.map((step, i) => (
-									<li key={i} className="flex gap-2 text-[13px] text-foreground/50 leading-[1.65]">
-										<span className="text-foreground/25 font-mono shrink-0">{i + 1}.</span>
+									<li key={i} className="flex gap-2 text-[13px] text-foreground/60 leading-[1.65]">
+										<span className="text-foreground/40 font-mono shrink-0">{i + 1}.</span>
 										<span>{step}</span>
 									</li>
 								))}
 							</ol>
 							{tool.command && (
 								<div className="relative group">
-									<pre className="text-[12px] font-mono text-foreground/60 bg-foreground/3 border border-foreground/6 px-3 py-2 pr-9 overflow-x-auto">{tool.command}</pre>
+									<pre className="text-[12px] font-mono text-foreground/70 bg-foreground/3 border border-foreground/6 px-3 py-2 pr-9 overflow-x-auto">{tool.command}</pre>
 									<button
 										type="button"
 										onClick={() => copyToClipboard(tool.command!, "command")}
-										className="absolute top-1.5 right-1.5 p-1 text-foreground/25 hover:text-foreground/60 transition-colors cursor-pointer"
+										className="absolute top-1.5 right-1.5 p-1 text-foreground/35 hover:text-foreground/65 transition-colors cursor-pointer"
 									>
 										{copied === "command" ? <CheckIcon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
 									</button>
@@ -1395,13 +1395,13 @@ function ToolIntegrationItem({ tool }: { tool: ToolIntegration }) {
 							{tool.config && (
 								<div className="relative group">
 									<div className="flex items-center gap-1.5 mb-1">
-										<span className="text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/25">{tool.config.filename}</span>
+										<span className="text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/40">{tool.config.filename}</span>
 									</div>
-									<pre className="text-[12px] font-mono text-foreground/60 bg-foreground/3 border border-foreground/6 px-3 py-2 pr-9 overflow-x-auto whitespace-pre-wrap break-all">{tool.config.content}</pre>
+									<pre className="text-[12px] font-mono text-foreground/70 bg-foreground/3 border border-foreground/6 px-3 py-2 pr-9 overflow-x-auto whitespace-pre-wrap break-all">{tool.config.content}</pre>
 									<button
 										type="button"
 										onClick={() => copyToClipboard(tool.config!.content, "config")}
-										className="absolute top-7 right-1.5 p-1 text-foreground/25 hover:text-foreground/60 transition-colors cursor-pointer"
+										className="absolute top-7 right-1.5 p-1 text-foreground/35 hover:text-foreground/65 transition-colors cursor-pointer"
 									>
 										{copied === "config" ? <CheckIcon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
 									</button>
@@ -1414,8 +1414,8 @@ function ToolIntegrationItem({ tool }: { tool: ToolIntegration }) {
 											<LightningBoltIcon className="w-2.5 h-2.5 text-amber-500" />
 										</div>
 										<div className="flex-1 min-w-0 space-y-0.5">
-											<p className="text-[12px] font-medium text-foreground/60">{tool.skill.label}</p>
-											<p className="text-[11.5px] text-foreground/35 leading-relaxed">{tool.skill.description}</p>
+											<p className="text-[12px] font-medium text-foreground/70">{tool.skill.label}</p>
+											<p className="text-[11.5px] text-foreground/50 leading-relaxed">{tool.skill.description}</p>
 										</div>
 									</div>
 									{tool.skill.command && (
