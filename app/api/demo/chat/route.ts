@@ -28,11 +28,12 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 
 ## How Agent Auth works
 
-1. **Search** for capabilities across providers using the search tool.
-2. **Connect** to a provider using connect_agent. The user may need to approve via a browser popup.
-3. **Execute** capabilities using execute_capability with the agent_id from connect_agent.
-4. **Escalate** by requesting additional capabilities if needed.
-5. **Claim** — use claim_agent when a user wants to take ownership of resources created by an autonomous agent (e.g. a deployed site). The user approves via a browser flow.
+1. **Find a provider** using search_providers with an intent (e.g. "email", "deploy sites"). This searches the directory for matching providers.
+2. **List capabilities** using list_capabilities to see what the provider offers. You MUST call this before connecting — never guess capability names.
+3. **Connect** to the provider using connect_agent. Only request capabilities whose exact names you got from list_capabilities. The user may need to approve via a browser popup.
+4. **Execute** capabilities using execute_capability with the agent_id from connect_agent.
+5. **Escalate** by requesting additional capabilities if needed.
+6. **Claim** — use claim_agent when a user wants to take ownership of resources created by an autonomous agent (e.g. a deployed site). The user approves via a browser flow.
 
 ## Style
 
@@ -41,6 +42,7 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 - After you receive the automatic approval message from the user, call agent_status ONCE to verify, then proceed immediately. Do NOT call agent_status more than once.
 - Format results clearly. For emails: subject, from, date, snippet. For deploy results: include the live URL prominently.
 - Never fabricate data. Only show results from actual API calls.
+- ALWAYS respond with a text message after tool calls complete. Never end your turn with only tool calls — the user needs to see a summary of what happened.
 
 ## Task guidelines
 
@@ -50,15 +52,18 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 
 ## Mode selection
 
-After finding a relevant provider via search, use the present_options tool to let the user choose how to connect. Do NOT list options as text — the UI renders clickable buttons from the tool call. After calling present_options, STOP and wait for the user to click a choice. Do NOT call connect_agent until the user has responded.
+Do NOT ask the user to choose a mode upfront. Just call connect_agent without specifying a mode — the server will default to delegated.
 
-Use these exact options:
+If connect_agent returns an action_required with choose_mode, THEN use the present_options tool to let the user choose. Do NOT list options as text — the UI renders clickable buttons. After calling present_options, STOP and wait for the user to click a choice. Then call connect_agent again with the chosen mode.
+
+Use these exact options when presenting a choice:
 - value: "delegated", label: "On my behalf", description: "You'll sign in to approve — the agent acts under your account"
 - value: "autonomous", label: "Independently", description: "The agent creates its own account — you can claim ownership later"
 
 ## Important
 
-- Always search or discover before connecting.
+- Always use search_providers or discover_provider before connecting.
+- ALWAYS call list_capabilities before connect_agent. NEVER guess or fabricate capability names — use the exact names returned by list_capabilities.
 - If connect_agent returns "pending_approval", STOP calling tools immediately. The user must approve first. After they approve, the system sends an automatic message — only THEN should you continue.
 - If connect_agent returns an action_required with choose_mode, call connect_agent again with the mode the user already selected.
 - If execute_capability fails with capability_not_granted, use request_capability to escalate.
@@ -69,7 +74,7 @@ Use these exact options:
 - You can connect to MULTIPLE providers in the same session. Each provider has its own agent_id and capabilities.`;
 
 const DEMO_TOOLS = [
-  "search",
+  "search_providers",
   "discover_provider",
   "list_capabilities",
   "connect_agent",
@@ -130,8 +135,16 @@ function wrapBlockingTool(
           }
           return result;
         }
+        if (err && typeof err === "object" && "message" in err) {
+          const e = err as { code?: string; message: string; status?: number };
+          return {
+            error: e.message,
+            ...(e.code && { code: e.code }),
+            ...(e.status && { status: e.status }),
+          };
+        }
         return {
-          error: "Connection failed. The provider may be unavailable.",
+          error: err instanceof Error ? err.message : "Connection failed. The provider may be unavailable.",
         };
       }
     },
@@ -175,12 +188,23 @@ function wrapEscalationTool(
   };
 }
 
+const TOOL_TIMEOUT_MS = 60_000;
+
 async function safeExecute(
   tool: AgentAuthTool,
   args: Record<string, unknown>,
 ): Promise<unknown> {
   try {
-    return await tool.execute(args);
+    const result = await Promise.race([
+      tool.execute(args),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Tool execution timed out — the provider may be slow. Please try again.")),
+          TOOL_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+    return result;
   } catch (err: unknown) {
     if (err && typeof err === "object" && "code" in err && "message" in err) {
       const e = err as { code: string; message: string };
@@ -228,23 +252,55 @@ function buildTools(session: DemoSession) {
     tools[tool.name] = {
       description: tool.description,
       inputSchema: jsonSchema(tool.parameters),
-      execute: (args) => {
+      execute: async (args) => {
         if (session.awaitingChoice && blockedWhenWaiting.has(originalTool.name)) {
-          return Promise.resolve({
+          return {
             error:
               "Cannot proceed — waiting for the user to make a choice. STOP immediately.",
-          });
+          };
         }
-        if (
-          session.pendingApproval &&
-          (originalTool.name === "execute_capability" ||
-            originalTool.name === "batch_execute_capabilities" ||
-            originalTool.name === "agent_status")
-        ) {
-          return Promise.resolve({
-            error:
-              "Cannot execute — user approval is still pending. STOP and wait for the user to approve.",
-          });
+        if (session.pendingApproval) {
+          if (originalTool.name === "agent_status") {
+            const result = await safeExecute(originalTool, args);
+            if (
+              result &&
+              typeof result === "object" &&
+              "status" in result &&
+              ((result as Record<string, unknown>).status === "active" ||
+                (result as Record<string, unknown>).status === "claimed")
+            ) {
+              session.pendingApproval = null;
+            }
+            return result;
+          }
+          if (
+            originalTool.name === "execute_capability" ||
+            originalTool.name === "batch_execute_capabilities"
+          ) {
+            const checkId =
+              typeof args.agent_id === "string"
+                ? args.agent_id
+                : session.lastAgentId;
+            if (checkId) {
+              try {
+                const status = await session.client.agentStatus(checkId);
+                if (
+                  status.status === "active" ||
+                  status.status === "claimed"
+                ) {
+                  session.pendingApproval = null;
+                }
+              } catch {
+                // status check failed — keep blocking
+              }
+            }
+            if (session.pendingApproval) {
+              return {
+                error:
+                  "Cannot execute — user approval is still pending. STOP and wait for the user to approve.",
+              };
+            }
+          }
         }
         return safeExecute(originalTool, args);
       },

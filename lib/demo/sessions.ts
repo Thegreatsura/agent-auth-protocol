@@ -85,7 +85,7 @@ export function getOrCreateSession(
     client: new AgentAuthClient({
       storage,
       hostName,
-      directoryUrl: settings?.directoryUrl || undefined,
+      directoryUrl: settings?.directoryUrl || "https://agent-auth.directory",
       allowDirectDiscovery: settings?.allowDirectDiscovery,
       approvalTimeoutMs: 1,
       onApprovalRequired(info) {

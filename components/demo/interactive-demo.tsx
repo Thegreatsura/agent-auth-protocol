@@ -150,8 +150,8 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 	const label = meta?.label ?? tool.toolName;
 	const hasError = tool.state === "error" || (tool.output && typeof tool.output === "object" && "error" in (tool.output as Record<string, unknown>));
 
-	const directoryUrl = tool.toolName === "search" && tool.input && typeof tool.input === "object"
-		? `https://agent-auth.directory/api/search?intent=${encodeURIComponent(String((tool.input as Record<string, unknown>).query ?? ""))}&limit=${(tool.input as Record<string, unknown>).limit ?? 5}`
+	const directoryUrl = tool.toolName === "search_providers" && tool.input && typeof tool.input === "object"
+		? `https://agent-auth.directory/api/search?intent=${encodeURIComponent(String((tool.input as Record<string, unknown>).intent ?? ""))}&limit=5`
 		: null;
 
 	return (
@@ -264,7 +264,7 @@ function AgentIdBadge({ connections }: { connections: AgentConnection[] }) {
 	if (connections.length === 0) return null;
 
 	return (
-		<div className="hidden lg:block relative">
+		<div className="relative">
 			<button
 				type="button"
 				onClick={() => setOpen(!open)}
@@ -718,7 +718,7 @@ function ChoiceCard({
 type IconComponent = React.ComponentType<{ className?: string }>;
 
 const TOOL_META: Record<string, { label: string; icon: IconComponent }> = {
-	search: { label: "Search", icon: MagnifyingGlassIcon},
+	search_providers: { label: "Search providers", icon: MagnifyingGlassIcon },
 	discover_provider: { label: "Discover provider", icon: ExternalLinkIcon },
 	list_capabilities: { label: "List capabilities", icon: ListBulletIcon },
 	connect_agent: { label: "Connect agent", icon: TargetIcon },
@@ -733,7 +733,7 @@ const TOOL_META: Record<string, { label: string; icon: IconComponent }> = {
 
 function ToolCallSummary({ toolName, res }: { toolName: string; res: Record<string, unknown> }) {
 	if (res.status === "pending_approval" || res.error) return null;
-	if (toolName === "search" && Array.isArray(res.results)) return <span className="text-[11px] text-foreground/45 font-mono">{res.results.length} result{res.results.length !== 1 ? "s" : ""}</span>;
+	if (toolName === "search_providers" && Array.isArray(res)) return <span className="text-[11px] text-foreground/45 font-mono">{res.length} provider{res.length !== 1 ? "s" : ""}</span>;
 	if (toolName === "connect_agent" && res.agentId) return <span className="text-[11px] text-foreground/45 font-mono truncate max-w-[120px]">{String(res.agentId).slice(0, 8)}…</span>;
 	if (toolName === "agent_status" && res.status) return <span className={`text-[11px] font-mono ${res.status === "active" ? "text-emerald-500" : "text-foreground/45"}`}>{String(res.status)}</span>;
 	return null;
@@ -758,7 +758,7 @@ function getToolInput(part: ToolPart): unknown { return part.input; }
 /* ─── Tool calls accordion ──────────────────────────────────── */
 
 function ToolCallsAccordion({ toolParts }: { toolParts: ToolPart[] }) {
-	const [expanded, setExpanded] = useState(false);
+	const [expanded, setExpanded] = useState(true);
 	if (toolParts.length === 0) return null;
 	const runningCount = toolParts.filter((p) => getToolState(p) === "running").length;
 	const errorCount = toolParts.filter((p) => getToolState(p) === "error").length;
@@ -924,47 +924,43 @@ function TextBlock({ text }: { text: string }) {
 	);
 }
 
-function AssistantMessage({ parts, onApprove, isApproved, onChoice, choiceDisabled }: { parts: MessagePart[]; onApprove: () => void; isApproved: boolean; onChoice: (value: string, label: string) => void; choiceDisabled: boolean }) {
+function AssistantMessage({ parts, onApprove, approvedUrls, onChoice, choiceDisabled }: { parts: MessagePart[]; onApprove: () => void; approvedUrls: Set<string>; onChoice: (value: string, label: string) => void; choiceDisabled: boolean }) {
 	const allToolParts: ToolPart[] = [];
-	for (const part of parts) if (isToolPart(part) && getToolName(part) !== "present_options") allToolParts.push(part);
-	const allDone = allToolParts.length > 0 && allToolParts.every((p) => getToolState(p) !== "running");
+	type SpecialSegment = { kind: "approval"; part: ToolPart; idx: number } | { kind: "choice"; part: ToolPart; idx: number } | { kind: "escalation"; dashboardUrl: string; idx: number } | { kind: "text"; text: string; idx: number };
+	const specials: SpecialSegment[] = [];
 
-	type Segment = { kind: "text"; text: string; idx: number } | { kind: "tools"; tools: ToolPart[]; idx: number } | { kind: "approval"; part: ToolPart; idx: number } | { kind: "choice"; part: ToolPart; idx: number } | { kind: "escalation"; dashboardUrl: string; idx: number };
-	const segments: Segment[] = [];
-	let currentToolBatch: ToolPart[] | null = null;
 	for (let i = 0; i < parts.length; i++) {
 		const part = parts[i];
 		if (isToolPart(part)) {
 			const res = getToolResult(part) as Record<string, unknown> | null;
 			if (getToolState(part) === "done" && typeof res?.approvalUrl === "string") {
-				if (currentToolBatch) { segments.push({ kind: "tools", tools: currentToolBatch, idx: i - 1 }); currentToolBatch = null; }
-				segments.push({ kind: "approval", part, idx: i });
+				specials.push({ kind: "approval", part, idx: i });
 			} else if (getToolName(part) === "request_capability" && getToolState(part) === "done" && typeof res?.status === "string" && res.status.includes("pending") && !res.approvalUrl) {
-				if (currentToolBatch) { segments.push({ kind: "tools", tools: currentToolBatch, idx: i - 1 }); currentToolBatch = null; }
-				const dashboardUrl = typeof res.dashboardUrl === "string" ? res.dashboardUrl : "";
-				segments.push({ kind: "escalation", dashboardUrl, idx: i });
+				specials.push({ kind: "escalation", dashboardUrl: typeof res.dashboardUrl === "string" ? res.dashboardUrl : "", idx: i });
 			} else if (getToolName(part) === "present_options" && getToolState(part) === "done") {
-				if (currentToolBatch) { segments.push({ kind: "tools", tools: currentToolBatch, idx: i - 1 }); currentToolBatch = null; }
-				segments.push({ kind: "choice", part, idx: i });
-			} else { if (!currentToolBatch) currentToolBatch = []; currentToolBatch.push(part); }
+				specials.push({ kind: "choice", part, idx: i });
+			} else {
+				allToolParts.push(part);
+			}
 		} else {
-			if (currentToolBatch) { segments.push({ kind: "tools", tools: currentToolBatch, idx: i - 1 }); currentToolBatch = null; }
 			const mp = part as MessagePart;
-			if (mp.type === "text" && mp.text) segments.push({ kind: "text", text: mp.text, idx: i });
+			if (mp.type === "text" && mp.text) specials.push({ kind: "text", text: mp.text, idx: i });
 		}
 	}
-	if (currentToolBatch) segments.push({ kind: "tools", tools: currentToolBatch, idx: parts.length });
 
 	return (
 		<motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="max-w-full sm:max-w-[90%] space-y-1">
-			{segments.map((seg) => {
+			{allToolParts.length > 0 && <ToolCallsAccordion toolParts={allToolParts} />}
+			{specials.map((seg) => {
 				if (seg.kind === "text") return <TextBlock key={`t-${seg.idx}`} text={seg.text} />;
-				if (seg.kind === "tools") return <InlineToolPills key={`tl-${seg.idx}`} toolParts={seg.tools} />;
-				if (seg.kind === "approval") return (
-					<motion.div key={`a-${seg.idx}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="my-2">
-						<ApprovalCard url={(getToolResult(seg.part) as Record<string, unknown>).approvalUrl as string} userCode={(getToolResult(seg.part) as Record<string, unknown>).userCode as string | undefined} onApprove={onApprove} isApproved={isApproved} />
-					</motion.div>
-				);
+				if (seg.kind === "approval") {
+					const approvalUrl = (getToolResult(seg.part) as Record<string, unknown>).approvalUrl as string;
+					return (
+						<motion.div key={`a-${seg.idx}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="my-2">
+							<ApprovalCard url={approvalUrl} userCode={(getToolResult(seg.part) as Record<string, unknown>).userCode as string | undefined} onApprove={onApprove} isApproved={approvedUrls.has(approvalUrl)} />
+						</motion.div>
+					);
+				}
 				if (seg.kind === "escalation") return (
 					<motion.div key={`e-${seg.idx}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="my-2">
 						<EscalationCard dashboardUrl={seg.dashboardUrl} />
@@ -980,7 +976,6 @@ function AssistantMessage({ parts, onApprove, isApproved, onChoice, choiceDisabl
 				}
 				return null;
 			})}
-			{allDone && allToolParts.length > 0 && <ToolCallsAccordion toolParts={allToolParts} />}
 		</motion.div>
 	);
 }
@@ -1067,13 +1062,14 @@ function derivePhases(messages: Array<{ role: string; parts: unknown }>): PhaseD
 			const res = getToolResult(part) as Record<string, unknown> | null;
 			const tc: PhaseToolCall = { toolName: name, state, input: getToolInput(part), output: getToolResult(part) };
 
-			if (name === "search" || name === "discover_provider" || name === "list_capabilities") {
+			if (name === "search_providers" || name === "discover_provider" || name === "list_capabilities") {
 				addToolToPhase("discovery", tc);
 				if (state === "running") active.add("discovery");
 				else if (state === "done") {
 					completed.add("discovery"); active.delete("discovery");
-					if (name === "search" && Array.isArray(res?.results)) {
-						for (const r of res.results as Array<Record<string, unknown>>) {
+					if (name === "search_providers") {
+						const providers = Array.isArray(res) ? res as Array<Record<string, unknown>> : Array.isArray(res?.results) ? res.results as Array<Record<string, unknown>> : [];
+						for (const r of providers) {
 							const url = (r.issuer ?? r.url ?? r.provider_url ?? "") as string;
 							const pName = (r.provider_name ?? r.name ?? url) as string;
 							if (url && !seenProviderUrls.has(url)) {
@@ -1088,9 +1084,11 @@ function derivePhases(messages: Array<{ role: string; parts: unknown }>): PhaseD
 			if (name === "connect_agent") {
 				const connProviderUrl = extractProviderUrl(getToolInput(part));
 				if (connProviderUrl) connectProviderUrls.push(connProviderUrl);
+				const connInput = getToolInput(part) as Record<string, unknown> | null;
+				const connMode = (connInput?.mode === "autonomous" ? "autonomous" : "delegated") as "delegated" | "autonomous";
 				if (state === "running") {
-					active.add("registration");
-					addToolToPhase("registration", tc);
+					active.add(connMode === "autonomous" ? "autonomous" : "registration");
+					addToolToPhase(connMode === "autonomous" ? "autonomous" : "registration", tc);
 				} else if (state === "done") {
 					if (typeof res?.approvalUrl === "string" || res?.status === "pending_approval") {
 						completed.add("registration");
@@ -1099,11 +1097,13 @@ function derivePhases(messages: Array<{ role: string; parts: unknown }>): PhaseD
 						addToolToPhase("consent", tc);
 						if (res?.agentId) trackAgentId(String(res.agentId), connProviderUrl, "delegated");
 					} else if (res?.agentId) {
-						completed.add("autonomous");
-						addToolToPhase("autonomous", tc);
-						trackAgentId(String(res.agentId), connProviderUrl, "autonomous");
+						const phase = connMode === "autonomous" ? "autonomous" : "registration";
+						completed.add(phase);
+						addToolToPhase(phase, tc);
+						trackAgentId(String(res.agentId), connProviderUrl, connMode);
 					}
 					active.delete("registration");
+					active.delete("autonomous");
 				}
 			}
 
@@ -1759,8 +1759,10 @@ export function InteractiveDemo() {
 	const usedGuidedFirstRef = useRef(false);
 	const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
 	const [awaitingApproval, setAwaitingApproval] = useState(false);
-	const [approvedCount, setApprovedCount] = useState(0);
+	const [approvedUrls, setApprovedUrls] = useState<Set<string>>(new Set());
+	const pendingApprovalUrlRef = useRef<string | null>(null);
 	const seenApprovalUrlsRef = useRef(new Set<string>());
+	const autoRetryCountRef = useRef(0);
 
 	const [sessionId, setSessionId] = useState(() => {
 		if (typeof window === "undefined") return "fallback";
@@ -1814,6 +1816,7 @@ export function InteractiveDemo() {
 	const isFirstPrompt = wtPromptIdx === 0 && messages.length === 0;
 
 	const handleChoice = useCallback((value: string, label: string) => {
+		autoRetryCountRef.current = 0;
 		sendMessage({ text: label });
 	}, [sendMessage]);
 
@@ -1823,6 +1826,7 @@ export function InteractiveDemo() {
 
 	const sendSuggestion = useCallback(() => {
 		if (!currentPrompt || isStreaming) return;
+		autoRetryCountRef.current = 0;
 		setWtPromptIdx((prev) => prev + 1);
 		sendMessage({ text: currentPrompt });
 	}, [currentPrompt, isStreaming, sendMessage]);
@@ -1869,6 +1873,31 @@ export function InteractiveDemo() {
 		userScrolledRef.current = el.scrollHeight - el.scrollTop - el.clientHeight > 80;
 	}, []);
 
+	// Auto-continue when the model ends a turn with tool results but no text
+	useEffect(() => {
+		if (isStreaming || awaitingApproval || error) return;
+		if (autoRetryCountRef.current >= 1) return;
+		const lastMsg = messages[messages.length - 1];
+		if (!lastMsg || lastMsg.role !== "assistant") return;
+		const parts = lastMsg.parts as MessagePart[];
+		const hasText = parts.some(p => p.type === "text" && p.text?.trim());
+		if (hasText) return;
+		const toolParts = parts.filter(p => isToolPart(p));
+		if (toolParts.length === 0) return;
+		const allDone = toolParts.every(p => getToolState(p) === "done" || getToolState(p) === "error");
+		if (!allDone) return;
+		const hasPending = toolParts.some(p => {
+			if (getToolState(p) !== "done") return false;
+			const res = getToolResult(p) as Record<string, unknown> | null;
+			if (!res) return false;
+			return typeof res.status === "string" && (res.status.includes("pending") || res.status.includes("awaiting"));
+		});
+		if (hasPending) return;
+		autoRetryCountRef.current++;
+		const timer = setTimeout(() => sendMessage({ text: "Continue." }), 800);
+		return () => clearTimeout(timer);
+	}, [isStreaming, awaitingApproval, error, messages, sendMessage]);
+
 	// Approval polling
 	const sendMessageRef = useRef(sendMessage);
 	sendMessageRef.current = sendMessage;
@@ -1885,12 +1914,13 @@ export function InteractiveDemo() {
 				if (data.status === "active") {
 					if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
 					setAwaitingApproval(false);
-					setApprovedCount((c) => c + 1);
-					const waitForIdle = () => {
-						if (!isStreamingRef.current) sendMessageRef.current({ text: "I've approved the connection. Please continue with my request." });
-						else setTimeout(waitForIdle, 500);
-					};
-					setTimeout(waitForIdle, 600);
+					if (pendingApprovalUrlRef.current) {
+						setApprovedUrls((prev) => new Set(prev).add(pendingApprovalUrlRef.current!));
+						pendingApprovalUrlRef.current = null;
+					}
+					if (!isStreamingRef.current) {
+						setTimeout(() => sendMessageRef.current({ text: "I've approved the connection. Please continue with my request." }), 600);
+					}
 				}
 			} catch { /* retry */ }
 		}, 2000);
@@ -1928,12 +1958,13 @@ export function InteractiveDemo() {
 						if (claimPollingRef.current) { clearInterval(claimPollingRef.current); claimPollingRef.current = null; }
 						claimInitialRef.current = null;
 						setAwaitingApproval(false);
-						setApprovedCount((c) => c + 1);
-						const waitForIdle = () => {
-							if (!isStreamingRef.current) sendMessageRef.current({ text: "I've approved the claim. Please continue." });
-							else setTimeout(waitForIdle, 500);
-						};
-						setTimeout(waitForIdle, 600);
+						if (pendingApprovalUrlRef.current) {
+							setApprovedUrls((prev) => new Set(prev).add(pendingApprovalUrlRef.current!));
+							pendingApprovalUrlRef.current = null;
+						}
+						if (!isStreamingRef.current) {
+							setTimeout(() => sendMessageRef.current({ text: "I've approved the claim. Please continue." }), 600);
+						}
 					}
 				} catch { /* retry */ }
 			}, 2000);
@@ -1950,6 +1981,7 @@ export function InteractiveDemo() {
 				const res = getToolResult(part) as Record<string, unknown> | null;
 				if (typeof res?.approvalUrl === "string" && !seenApprovalUrlsRef.current.has(res.approvalUrl)) {
 					seenApprovalUrlsRef.current.add(res.approvalUrl);
+					pendingApprovalUrlRef.current = res.approvalUrl;
 					if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
 					startPolling();
 					return;
@@ -1973,6 +2005,7 @@ export function InteractiveDemo() {
 					const partKey = mi * 1000 + pi;
 					if (!seenClaimIdsRef.current.has(partKey)) {
 						seenClaimIdsRef.current.add(partKey);
+						pendingApprovalUrlRef.current = res.approvalUrl;
 						if (claimPollingRef.current) { clearInterval(claimPollingRef.current); claimPollingRef.current = null; }
 						startClaimPolling();
 						return;
@@ -2004,12 +2037,13 @@ export function InteractiveDemo() {
 						if (escalationPollingRef.current) { clearInterval(escalationPollingRef.current); escalationPollingRef.current = null; }
 						escalationGrantCountRef.current = null;
 						setAwaitingApproval(false);
-						setApprovedCount((c) => c + 1);
-						const waitForIdle = () => {
-							if (!isStreamingRef.current) sendMessageRef.current({ text: "Done — I've approved the new capability." });
-							else setTimeout(waitForIdle, 500);
-						};
-						setTimeout(waitForIdle, 600);
+						if (pendingApprovalUrlRef.current) {
+							setApprovedUrls((prev) => new Set(prev).add(pendingApprovalUrlRef.current!));
+							pendingApprovalUrlRef.current = null;
+						}
+						if (!isStreamingRef.current) {
+							setTimeout(() => sendMessageRef.current({ text: "Done — I've approved the new capability." }), 600);
+						}
 					}
 				} catch { /* retry */ }
 			}, 2000);
@@ -2061,6 +2095,7 @@ export function InteractiveDemo() {
 	const onSubmit = useCallback((e: FormEvent) => {
 		e.preventDefault();
 		if (!input.trim() || isStreaming) return;
+		autoRetryCountRef.current = 0;
 		if (isFirstPrompt) {
 			const recommended = WALKTHROUGH_PROMPTS[0].prompt ?? "";
 			const usedRecommended = input.trim() === recommended.trim();
@@ -2097,13 +2132,6 @@ export function InteractiveDemo() {
 				<div className="flex items-center gap-2 shrink-0 mt-0.5">
 					<button
 						type="button"
-						onClick={() => setShowSettingsDialog(true)}
-						className="inline-flex items-center justify-center w-8 h-8 text-foreground/40 hover:text-foreground/70 border border-foreground/10 hover:border-foreground/20 hover:bg-foreground/3 transition-all cursor-pointer"
-					>
-						<GearIcon className="w-4 h-4" />
-					</button>
-					<button
-						type="button"
 						onClick={() => setShowToolsDialog(true)}
 						className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground/80 border border-dashed border-foreground/20 hover:border-foreground/30 hover:bg-foreground/3 transition-all cursor-pointer shrink-0"
 					>
@@ -2121,6 +2149,18 @@ export function InteractiveDemo() {
 
 			<div className="flex gap-0 border border-foreground/8 flex-1 min-h-0 bg-background relative">
 				<div className="flex-1 flex flex-col min-w-0">
+					<div className="hidden lg:flex items-center gap-2 px-4 py-1.5 border-b border-foreground/6">
+						<AgentIdBadge connections={agentConnections} />
+						<div className="ml-auto">
+							<button
+								type="button"
+								onClick={() => setShowSettingsDialog(true)}
+								className="inline-flex items-center justify-center w-7 h-7 text-foreground/30 hover:text-foreground/60 hover:bg-foreground/5 rounded-sm transition-all cursor-pointer"
+							>
+								<GearIcon className="w-3.5 h-3.5" />
+							</button>
+						</div>
+					</div>
 					{messages.length === 0 ? (
 						<div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-5 gap-4 sm:gap-5">
 							<div className="flex flex-col items-center gap-2.5 sm:gap-3">
@@ -2148,14 +2188,9 @@ export function InteractiveDemo() {
 					) : (
 						<>
 							<ProtocolProgressBar activePhases={activePhases} completedPhases={completedPhases} onOpen={() => setSidebarOpen(true)} />
-							{agentConnections.length > 0 && (
-								<div className="hidden lg:flex items-center gap-2 px-4 py-1.5 border-b border-foreground/6">
-									<AgentIdBadge connections={agentConnections} />
-								</div>
-							)}
 							<div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-3 sm:py-5 space-y-3 sm:space-y-4">
 							{messages.map((msg, i) =>
-								msg.role === "user" ? <UserMessage key={msg.id} content={getTextFromParts(msg)} /> : <AssistantMessage key={msg.id} parts={msg.parts as MessagePart[]} onApprove={handleApprove} isApproved={approvedCount > 0 && !awaitingApproval} onChoice={handleChoice} choiceDisabled={i !== messages.length - 1 || isStreaming} />,
+								msg.role === "user" ? <UserMessage key={msg.id} content={getTextFromParts(msg)} /> : <AssistantMessage key={msg.id} parts={msg.parts as MessagePart[]} onApprove={handleApprove} approvedUrls={approvedUrls} onChoice={handleChoice} choiceDisabled={i !== messages.length - 1 || isStreaming} />,
 							)}
 								{isStreaming && <StreamingIndicator messages={messages} />}
 								<div ref={messagesEndRef} />
