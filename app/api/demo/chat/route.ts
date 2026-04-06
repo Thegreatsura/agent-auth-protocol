@@ -12,7 +12,7 @@ import {
   type AgentAuthTool,
   type ApprovalInfo,
 } from "@auth/agent";
-import { getOrCreateSession, type DemoSession } from "@/lib/demo/sessions";
+import { getOrCreateSession, type DemoSession, type DemoSettings } from "@/lib/demo/sessions";
 import {
   chatRateLimit,
   getClientIp,
@@ -124,7 +124,11 @@ function wrapBlockingTool(
         }
         const pending = session.pendingApproval;
         if (pending) {
-          return approvalResult(pending);
+          const result = approvalResult(pending);
+          if (session.lastAgentId) {
+            (result as Record<string, unknown>).agentId = session.lastAgentId;
+          }
+          return result;
         }
         return {
           error: "Connection failed. The provider may be unavailable.",
@@ -323,7 +327,8 @@ export async function POST(req: Request) {
   const {
     messages,
     sessionId,
-  }: { messages?: UIMessage[]; sessionId?: string } = await req.json();
+    settings,
+  }: { messages?: UIMessage[]; sessionId?: string; settings?: DemoSettings } = await req.json();
 
   if (!sessionId) {
     return new Response("Missing sessionId", { status: 400 });
@@ -333,14 +338,22 @@ export async function POST(req: Request) {
     return new Response("Missing messages", { status: 400 });
   }
 
-  const session = getOrCreateSession(sessionId);
+  const session = getOrCreateSession(sessionId, {
+    userAgent: req.headers.get("user-agent") ?? undefined,
+    settings,
+  });
   session.awaitingChoice = false;
+
+  let systemPrompt = SYSTEM_PROMPT;
+  if (settings?.providerUrl) {
+    systemPrompt += `\n\n## Pre-configured provider\n\nThe user has configured a specific provider at: ${settings.providerUrl}\nWhen the user asks to do something, use discover_provider with this URL first instead of searching the directory. You can still search the directory for other providers if needed.`;
+  }
 
   const result = streamText({
     model: openrouter.chat(
       process.env.OPENROUTER_MODEL ?? "moonshotai/kimi-k2.5",
     ),
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: await convertToModelMessages(messages),
     tools: buildTools(session),
     stopWhen: stepCountIs(10),

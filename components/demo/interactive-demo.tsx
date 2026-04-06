@@ -26,6 +26,8 @@ import {
 	LayersIcon,
 	IdCardIcon,
 	CopyIcon,
+	GearIcon,
+	ResetIcon,
 } from "@radix-ui/react-icons";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -148,6 +150,10 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 	const label = meta?.label ?? tool.toolName;
 	const hasError = tool.state === "error" || (tool.output && typeof tool.output === "object" && "error" in (tool.output as Record<string, unknown>));
 
+	const directoryUrl = tool.toolName === "search" && tool.input && typeof tool.input === "object"
+		? `https://agent-auth.directory/api/search?intent=${encodeURIComponent(String((tool.input as Record<string, unknown>).query ?? ""))}&limit=${(tool.input as Record<string, unknown>).limit ?? 5}`
+		: null;
+
 	return (
 		<div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
 			<div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
@@ -168,6 +174,18 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 					</button>
 				</div>
 				<div className="overflow-y-auto p-4 space-y-3">
+					{directoryUrl && (
+						<a
+							href={directoryUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-3 py-2 text-[12px] font-mono text-foreground/55 hover:text-foreground/75 bg-foreground/2 border border-foreground/8 hover:border-foreground/15 transition-colors"
+						>
+							<ExternalLinkIcon className="w-3 h-3 shrink-0" />
+							<span className="truncate">View on agent-auth.directory</span>
+							<ArrowRightIcon className="w-3 h-3 shrink-0 ml-auto opacity-50" />
+						</a>
+					)}
 					{tool.input != null && (
 						<div>
 							<span className="text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/45 block mb-1.5">Input</span>
@@ -1559,6 +1577,165 @@ function TryWithToolsDialog({ onClose }: { onClose: () => void }) {
 	);
 }
 
+/* ─── Settings ──────────────────────────────────────────────── */
+
+interface DemoSettings {
+	directoryUrl: string;
+	providerUrl: string;
+	hostName: string;
+	allowDirectDiscovery: boolean;
+}
+
+const SETTINGS_KEY = "agent-auth-demo-settings";
+const DEFAULT_DIRECTORY_URL = "https://agent-auth.directory";
+
+function loadSettings(): DemoSettings {
+	if (typeof window === "undefined") return { directoryUrl: DEFAULT_DIRECTORY_URL, providerUrl: "", hostName: "", allowDirectDiscovery: false };
+	try {
+		const raw = localStorage.getItem(SETTINGS_KEY);
+		if (raw) {
+			const parsed = JSON.parse(raw);
+			return {
+				directoryUrl: parsed.directoryUrl ?? DEFAULT_DIRECTORY_URL,
+				providerUrl: parsed.providerUrl ?? "",
+				hostName: parsed.hostName ?? "",
+				allowDirectDiscovery: parsed.allowDirectDiscovery ?? false,
+			};
+		}
+	} catch { /* ignore */ }
+	return { directoryUrl: DEFAULT_DIRECTORY_URL, providerUrl: "", hostName: "", allowDirectDiscovery: false };
+}
+
+function saveSettings(s: DemoSettings) {
+	localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+function settingsForApi(s: DemoSettings): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	if (s.directoryUrl && s.directoryUrl !== DEFAULT_DIRECTORY_URL) out.directoryUrl = s.directoryUrl;
+	if (s.providerUrl) out.providerUrl = s.providerUrl;
+	if (s.hostName) out.hostName = s.hostName;
+	if (s.allowDirectDiscovery) out.allowDirectDiscovery = true;
+	return out;
+}
+
+function SettingsDialog({
+	settings,
+	onSave,
+	onReset,
+	onClose,
+}: {
+	settings: DemoSettings;
+	onSave: (s: DemoSettings) => void;
+	onReset: () => void;
+	onClose: () => void;
+}) {
+	const [draft, setDraft] = useState<DemoSettings>({ ...settings });
+	const hasChanges = JSON.stringify(draft) !== JSON.stringify(settings);
+
+	const handleSave = () => {
+		onSave(draft);
+		onClose();
+	};
+
+	return (
+		<div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
+			<div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+			<motion.div
+				initial={{ opacity: 0, y: 12, scale: 0.97 }}
+				animate={{ opacity: 1, y: 0, scale: 1 }}
+				transition={{ duration: 0.18 }}
+				className="relative w-full sm:max-w-md border border-foreground/10 bg-background shadow-xl shadow-foreground/5 z-10 max-h-[85dvh] flex flex-col"
+				style={{ fontFamily: "var(--font-sans), sans-serif" }}
+			>
+				<div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-foreground/8 shrink-0">
+					<GearIcon className="w-4 h-4 text-foreground/45" />
+					<span className="text-[14px] font-semibold text-foreground/85 flex-1">Settings</span>
+					<button type="button" onClick={onClose} className="p-1 text-foreground/40 hover:text-foreground/70 transition-colors cursor-pointer">
+						<Cross2Icon className="w-3.5 h-3.5" />
+					</button>
+				</div>
+
+				<div className="overflow-y-auto p-5 space-y-5">
+					<div className="space-y-1.5">
+						<label className="text-[12px] font-medium text-foreground/60 block">Directory URL</label>
+						<input
+							value={draft.directoryUrl}
+							onChange={(e) => setDraft({ ...draft, directoryUrl: e.target.value })}
+							placeholder={DEFAULT_DIRECTORY_URL}
+							className="w-full px-3 py-2 text-[13px] font-mono bg-foreground/2 border border-foreground/10 text-foreground/80 placeholder:text-foreground/30 outline-none focus:border-foreground/25 transition-colors"
+						/>
+						<p className="text-[11px] text-foreground/35 leading-relaxed">The directory used for provider search. Change this to use a custom or private directory.</p>
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-[12px] font-medium text-foreground/60 block">Provider URL</label>
+						<input
+							value={draft.providerUrl}
+							onChange={(e) => setDraft({ ...draft, providerUrl: e.target.value })}
+							placeholder="https://your-provider.com"
+							className="w-full px-3 py-2 text-[13px] font-mono bg-foreground/2 border border-foreground/10 text-foreground/80 placeholder:text-foreground/30 outline-none focus:border-foreground/25 transition-colors"
+						/>
+						<p className="text-[11px] text-foreground/35 leading-relaxed">Connect directly to a specific provider without searching the directory. The agent will discover this provider automatically.</p>
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-[12px] font-medium text-foreground/60 block">Host Name</label>
+						<input
+							value={draft.hostName}
+							onChange={(e) => setDraft({ ...draft, hostName: e.target.value })}
+							placeholder="Auto-detected from browser"
+							className="w-full px-3 py-2 text-[13px] font-mono bg-foreground/2 border border-foreground/10 text-foreground/80 placeholder:text-foreground/30 outline-none focus:border-foreground/25 transition-colors"
+						/>
+						<p className="text-[11px] text-foreground/35 leading-relaxed">The name shown to providers when this host registers. Leave empty for auto-detection.</p>
+					</div>
+
+					<div className="flex items-start gap-3">
+						<button
+							type="button"
+							onClick={() => setDraft({ ...draft, allowDirectDiscovery: !draft.allowDirectDiscovery })}
+							className={`mt-0.5 w-8 h-[18px] rounded-full border transition-colors cursor-pointer shrink-0 relative ${draft.allowDirectDiscovery ? "bg-foreground/80 border-foreground/80" : "bg-foreground/10 border-foreground/15"}`}
+						>
+							<span className={`absolute top-[2px] w-3 h-3 rounded-full transition-all ${draft.allowDirectDiscovery ? "left-[14px] bg-background" : "left-[2px] bg-foreground/40"}`} />
+						</button>
+						<div>
+							<p className="text-[12px] font-medium text-foreground/60">Allow Direct Discovery</p>
+							<p className="text-[11px] text-foreground/35 leading-relaxed mt-0.5">Allow the agent to discover providers from arbitrary URLs. When off, providers are only resolved through the directory.</p>
+						</div>
+					</div>
+				</div>
+
+				<div className="px-5 py-3.5 border-t border-foreground/8 flex items-center gap-2.5">
+					<button
+						type="button"
+						onClick={onReset}
+						className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-red-600 dark:text-red-400 hover:bg-red-500/8 border border-red-500/20 hover:border-red-500/30 transition-colors cursor-pointer"
+					>
+						<ResetIcon className="w-3 h-3" />
+						Reset Session
+					</button>
+					<div className="flex-1" />
+					<button
+						type="button"
+						onClick={onClose}
+						className="px-3 py-1.5 text-[12px] font-medium text-foreground/55 hover:text-foreground/75 border border-foreground/10 hover:border-foreground/20 transition-colors cursor-pointer"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						onClick={handleSave}
+						disabled={!hasChanges}
+						className="px-3 py-1.5 text-[12px] font-medium bg-foreground text-background hover:bg-foreground/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+					>
+						Save
+					</button>
+				</div>
+			</motion.div>
+		</div>
+	);
+}
+
 /* ─── Main component ────────────────────────────────────────── */
 
 export function InteractiveDemo() {
@@ -1574,6 +1751,8 @@ export function InteractiveDemo() {
 	const seenEscalationIdsRef = useRef(new Set<number>());
 
 	const [showToolsDialog, setShowToolsDialog] = useState(false);
+	const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+	const [settings, setSettings] = useState<DemoSettings>(loadSettings);
 	const [input, setInput] = useState("");
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [wtPromptIdx, setWtPromptIdx] = useState(0);
@@ -1583,9 +1762,44 @@ export function InteractiveDemo() {
 	const [approvedCount, setApprovedCount] = useState(0);
 	const seenApprovalUrlsRef = useRef(new Set<string>());
 
-	const [sessionId] = useState(() => typeof crypto !== "undefined" ? crypto.randomUUID() : "fallback");
-	const [transport] = useState(() => new DefaultChatTransport({ api: "/api/demo/chat", body: { sessionId } }));
-	const { messages, status, error, sendMessage, stop } = useChat({ id: "demo", transport });
+	const [sessionId, setSessionId] = useState(() => {
+		if (typeof window === "undefined") return "fallback";
+		const key = "agent-auth-demo-session-id";
+		const stored = localStorage.getItem(key);
+		if (stored) return stored;
+		const id = crypto.randomUUID();
+		localStorage.setItem(key, id);
+		return id;
+	});
+	const settingsRef = useRef(settings);
+	settingsRef.current = settings;
+	const sessionIdRef = useRef(sessionId);
+	sessionIdRef.current = sessionId;
+	const [transport] = useState(() => new DefaultChatTransport({
+		api: "/api/demo/chat",
+		body: () => ({ sessionId: sessionIdRef.current, settings: settingsForApi(settingsRef.current) }),
+	}));
+	const { messages, status, error, sendMessage, stop, setMessages } = useChat({ id: "demo", transport });
+
+	const handleSaveSettings = useCallback((s: DemoSettings) => {
+		setSettings(s);
+		saveSettings(s);
+		const newId = crypto.randomUUID();
+		localStorage.setItem("agent-auth-demo-session-id", newId);
+		setSessionId(newId);
+		setMessages([]);
+	}, [setMessages]);
+
+	const handleResetSession = useCallback(() => {
+		localStorage.removeItem("agent-auth-demo-session-id");
+		localStorage.removeItem(SETTINGS_KEY);
+		const newId = crypto.randomUUID();
+		localStorage.setItem("agent-auth-demo-session-id", newId);
+		setSessionId(newId);
+		setSettings(loadSettings());
+		setMessages([]);
+		setShowSettingsDialog(false);
+	}, [setMessages]);
 
 	const isStreaming = status === "streaming" || status === "submitted";
 	const isGuided = wtPromptIdx < WALKTHROUGH_PROMPTS.length;
@@ -1861,6 +2075,14 @@ export function InteractiveDemo() {
 		<div className="flex flex-col h-full">
 			<AnimatePresence>
 				{showToolsDialog && <TryWithToolsDialog onClose={() => setShowToolsDialog(false)} />}
+				{showSettingsDialog && (
+					<SettingsDialog
+						settings={settings}
+						onSave={handleSaveSettings}
+						onReset={handleResetSession}
+						onClose={() => setShowSettingsDialog(false)}
+					/>
+				)}
 			</AnimatePresence>
 
 			<div className="mb-2 sm:mb-4 shrink-0 flex items-start justify-between gap-4">
@@ -1872,20 +2094,29 @@ export function InteractiveDemo() {
 						Chat with an AI agent that discovers services, authenticates, and acts on your behalf.
 					</p>
 				</div>
-				<button
-					type="button"
-					onClick={() => setShowToolsDialog(true)}
-					className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground/80 border border-dashed border-foreground/20 hover:border-foreground/30 hover:bg-foreground/3 transition-all cursor-pointer shrink-0 mt-0.5"
-				>
-					<span className="flex items-center -space-x-1.5">
-						<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[4]"><OpenAIIcon className="w-2.5 h-2.5 text-foreground/70" /></span>
-						<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[3]"><ClaudeIcon className="w-2.5 h-2.5 text-[#D97757]" /></span>
-						<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[2]"><CursorIcon className="w-2.5 h-2.5 text-foreground/70" /></span>
-						<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[1]"><VercelIcon className="w-2.5 h-2.5 text-foreground/70" /></span>
-					</span>
-					Try with your tools
-					<ArrowRightIcon className="w-3 h-3 opacity-50" />
-				</button>
+				<div className="flex items-center gap-2 shrink-0 mt-0.5">
+					<button
+						type="button"
+						onClick={() => setShowSettingsDialog(true)}
+						className="inline-flex items-center justify-center w-8 h-8 text-foreground/40 hover:text-foreground/70 border border-foreground/10 hover:border-foreground/20 hover:bg-foreground/3 transition-all cursor-pointer"
+					>
+						<GearIcon className="w-4 h-4" />
+					</button>
+					<button
+						type="button"
+						onClick={() => setShowToolsDialog(true)}
+						className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground/80 border border-dashed border-foreground/20 hover:border-foreground/30 hover:bg-foreground/3 transition-all cursor-pointer shrink-0"
+					>
+						<span className="flex items-center -space-x-1.5">
+							<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[4]"><OpenAIIcon className="w-2.5 h-2.5 text-foreground/70" /></span>
+							<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[3]"><ClaudeIcon className="w-2.5 h-2.5 text-[#D97757]" /></span>
+							<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[2]"><CursorIcon className="w-2.5 h-2.5 text-foreground/70" /></span>
+							<span className="w-4.5 h-4.5 rounded-full bg-background border border-foreground/10 flex items-center justify-center relative z-[1]"><VercelIcon className="w-2.5 h-2.5 text-foreground/70" /></span>
+						</span>
+						Try with your tools
+						<ArrowRightIcon className="w-3 h-3 opacity-50" />
+					</button>
+				</div>
 			</div>
 
 			<div className="flex gap-0 border border-foreground/8 flex-1 min-h-0 bg-background relative">
