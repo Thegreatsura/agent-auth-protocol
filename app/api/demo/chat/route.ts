@@ -54,9 +54,9 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 
 Do NOT ask the user to choose a mode upfront. Just call connect_agent without specifying a mode — the server will default to delegated.
 
-If connect_agent returns an action_required with choose_mode, THEN use the present_options tool to let the user choose. Do NOT list options as text — the UI renders clickable buttons. After calling present_options, STOP and wait for the user to click a choice. Then call connect_agent again with the chosen mode.
+If connect_agent returns an action_required with choose_mode, you MUST call the present_options tool immediately. This is MANDATORY — NEVER write the options as text in your message. The UI renders clickable buttons from the present_options tool, and text-based options will not work. After calling present_options, STOP and wait for the user to click a choice. Then call connect_agent again with the chosen mode.
 
-Use these exact options when presenting a choice:
+You MUST pass these exact options to present_options:
 - value: "delegated", label: "On my behalf", description: "You'll sign in to approve — the agent acts under your account"
 - value: "autonomous", label: "Independently", description: "The agent creates its own account — you can claim ownership later"
 
@@ -123,6 +123,8 @@ function wrapBlockingTool(
           (result as Record<string, unknown>).action_required === "choose_mode"
         ) {
           session.awaitingChoice = true;
+          (result as Record<string, unknown>).instruction =
+            "IMPORTANT: You MUST call the present_options tool now to let the user choose. Do NOT write the options as text.";
         }
         return result;
       } catch (err: unknown) {
