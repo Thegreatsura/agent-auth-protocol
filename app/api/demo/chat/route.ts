@@ -116,6 +116,14 @@ function wrapBlockingTool(
         ) {
           session.lastAgentId = (result as { agentId: string }).agentId;
         }
+        if (
+          result &&
+          typeof result === "object" &&
+          "action_required" in result &&
+          (result as Record<string, unknown>).action_required === "choose_mode"
+        ) {
+          session.awaitingChoice = true;
+        }
         return result;
       } catch (err: unknown) {
         if (
@@ -273,34 +281,6 @@ function buildTools(session: DemoSession) {
             }
             return result;
           }
-          if (
-            originalTool.name === "execute_capability" ||
-            originalTool.name === "batch_execute_capabilities"
-          ) {
-            const checkId =
-              typeof args.agent_id === "string"
-                ? args.agent_id
-                : session.lastAgentId;
-            if (checkId) {
-              try {
-                const status = await session.client.agentStatus(checkId);
-                if (
-                  status.status === "active" ||
-                  status.status === "claimed"
-                ) {
-                  session.pendingApproval = null;
-                }
-              } catch {
-                // status check failed — keep blocking
-              }
-            }
-            if (session.pendingApproval) {
-              return {
-                error:
-                  "Cannot execute — user approval is still pending. STOP and wait for the user to approve.",
-              };
-            }
-          }
         }
         return safeExecute(originalTool, args);
       },
@@ -407,7 +387,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openrouter.chat(
-      process.env.OPENROUTER_MODEL ?? "moonshotai/kimi-k2.5",
+      process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4",
     ),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),

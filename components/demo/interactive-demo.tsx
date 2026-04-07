@@ -150,8 +150,8 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 	const label = meta?.label ?? tool.toolName;
 	const hasError = tool.state === "error" || (tool.output && typeof tool.output === "object" && "error" in (tool.output as Record<string, unknown>));
 
-	const directoryUrl = tool.toolName === "search_providers" && tool.input && typeof tool.input === "object"
-		? `https://agent-auth.directory/api/search?intent=${encodeURIComponent(String((tool.input as Record<string, unknown>).intent ?? ""))}&limit=5`
+	const directoryUrl = tool.toolName === "search_providers"
+		? "https://agent-auth.directory"
 		: null;
 
 	return (
@@ -182,7 +182,7 @@ function ToolCallDialog({ tool, onClose }: { tool: PhaseToolCall; onClose: () =>
 							className="flex items-center gap-2 px-3 py-2 text-[12px] font-mono text-foreground/55 hover:text-foreground/75 bg-foreground/2 border border-foreground/8 hover:border-foreground/15 transition-colors"
 						>
 							<ExternalLinkIcon className="w-3 h-3 shrink-0" />
-							<span className="truncate">View on agent-auth.directory</span>
+							<span className="truncate">Go to agent-auth.directory</span>
 							<ArrowRightIcon className="w-3 h-3 shrink-0 ml-auto opacity-50" />
 						</a>
 					)}
