@@ -54,14 +54,14 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 
 Do NOT ask the user to choose a mode upfront. Just call connect_agent without specifying a mode — the server will default to delegated.
 
-If connect_agent returns an action_required with choose_mode, the UI automatically renders clickable buttons for the user. Do NOT call present_options and do NOT write the options as text. Just say something brief like "Pick how you'd like to connect:" and STOP. Wait for the user to click a choice. Then call connect_agent again with the chosen mode.
+If connect_agent returns an action_required with choose_mode, the UI automatically renders clickable buttons for the user. Do NOT call present_options and do NOT write the options as text. Just say something brief like "Pick how you'd like to connect:" and STOP. Wait for the user to click a choice. Their response will include the mode value (e.g. "delegated" or "autonomous"). You MUST then call connect_agent again with the SAME provider_url and capabilities as before, but add the mode parameter set to the value from their response.
 
 ## Important
 
 - Always use search_providers or discover_provider before connecting.
 - ALWAYS call list_capabilities before connect_agent. NEVER guess or fabricate capability names — use the exact names returned by list_capabilities.
 - If connect_agent returns "pending_approval", STOP calling tools immediately. The user must approve first. After they approve, the system sends an automatic message — only THEN should you continue.
-- If connect_agent returns an action_required with choose_mode, the UI shows buttons automatically. Do NOT write the options as text. STOP and wait for the user to click, then call connect_agent again with the chosen mode.
+- If connect_agent returns an action_required with choose_mode, the UI shows buttons automatically. Do NOT write the options as text. STOP and wait for the user to click, then call connect_agent again with the same provider_url and capabilities but with the mode parameter set to the value from their response (e.g. "delegated" or "autonomous").
 - If execute_capability fails with capability_not_granted, use request_capability to escalate.
 - If request_capability returns "pending_approval" with an approval URL, STOP calling tools immediately — the user must approve first via the approval card. After they approve, the system sends an automatic message — only THEN should you continue.
 - If request_capability returns a pending status WITHOUT an approval URL (async/CIBA flow), the UI already shows a card with the dashboard link. Tell the user briefly: "You should have a notification on the provider's dashboard — click the button above to approve, then let me know when you're done." NEVER say "check the approval card above" — there is no approval card for this flow. NEVER paste dashboard URLs in your message — the UI card already has the link. Just refer to the button and STOP.
@@ -127,7 +127,7 @@ function wrapBlockingTool(
             { value: "autonomous", label: "Independently", description: "The agent creates its own account — you can claim ownership later" },
           ];
           r.instruction =
-            "The UI is already showing clickable buttons to the user. Do NOT repeat these options as text. Just say something brief like 'Pick how you'd like to connect:' and STOP. Wait for the user to click a choice.";
+            "The UI is already showing clickable buttons to the user. Do NOT repeat these options as text. Just say something brief like 'Pick how you'd like to connect:' and STOP. Wait for the user to click. When they respond, their message will include the mode value (e.g. 'delegated' or 'autonomous'). You MUST call connect_agent again with the same provider_url and capabilities, but this time include the mode parameter set to the value they chose.";
         }
         return result;
       } catch (err: unknown) {

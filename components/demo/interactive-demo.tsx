@@ -1818,7 +1818,7 @@ export function InteractiveDemo() {
 
 	const handleChoice = useCallback((value: string, label: string) => {
 		autoRetryCountRef.current = 0;
-		sendMessage({ text: label });
+		sendMessage({ text: `${label} (mode: ${value})` });
 	}, [sendMessage]);
 
 	useEffect(() => {
