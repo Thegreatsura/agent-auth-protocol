@@ -13,7 +13,7 @@ importers:
         version: 3.0.118(react@19.2.4)(zod@4.3.6)
       '@auth/agent':
         specifier: latest
-        version: 0.3.0(ai@6.0.116(zod@4.3.6))
+        version: 0.4.6(ai@6.0.116(zod@4.3.6))
       '@openrouter/ai-sdk-provider':
         specifier: ^2.3.3
         version: 2.3.3(ai@6.0.116(zod@4.3.6))(zod@4.3.6)
@@ -195,8 +195,8 @@ packages:
   '@antfu/install-pkg@1.1.0':
     resolution: {integrity: sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ==}
 
-  '@auth/agent@0.3.0':
-    resolution: {integrity: sha512-XXjrZts/hzqCKgmAqF6o4Sp0L9ZYsAXs1Slqu+H03n6a5UBK+ThTkYc9nW6wz2CRwILos7q5Mu9b8r3Fga2ZfQ==}
+  '@auth/agent@0.4.6':
+    resolution: {integrity: sha512-zkYMpltwARLNyQey6+GM9ZoQzAti1qDy38ySAJyvrjm7addQrTtOX1N4+bZVefxrgNV22wZnPlg75hLEnuRFKQ==}
     peerDependencies:
       ai: '>=3.0.0'
     peerDependenciesMeta:
@@ -3118,7 +3118,7 @@ snapshots:
       package-manager-detector: 1.6.0
       tinyexec: 1.0.4
 
-  '@auth/agent@0.3.0(ai@6.0.116(zod@4.3.6))':
+  '@auth/agent@0.4.6(ai@6.0.116(zod@4.3.6))':
     dependencies:
       jose: 6.2.2
     optionalDependencies:
