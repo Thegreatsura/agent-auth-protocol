@@ -86,7 +86,7 @@ export function getOrCreateSession(
       storage,
       hostName,
       directoryUrl: settings?.directoryUrl || "https://agent-auth.directory",
-      allowDirectDiscovery: settings?.allowDirectDiscovery,
+      allowDirectDiscovery: settings?.allowDirectDiscovery ?? true,
       approvalTimeoutMs: 1,
       onApprovalRequired(info) {
         session.pendingApproval = info;
