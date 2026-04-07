@@ -392,7 +392,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openrouter.chat(
-      process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-4.6",
+      process.env.OPENROUTER_MODEL ?? "moonshotai/kimi-k2.5",
     ),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
