@@ -938,8 +938,6 @@ function AssistantMessage({ parts, onApprove, approvedUrls, onChoice, choiceDisa
 				specials.push({ kind: "escalation", dashboardUrl: typeof res.dashboardUrl === "string" ? res.dashboardUrl : "", idx: i });
 			} else if (getToolName(part) === "present_options" && getToolState(part) === "done") {
 				specials.push({ kind: "choice", part, idx: i });
-			} else if (getToolName(part) === "connect_agent" && getToolState(part) === "done" && res?.action_required === "choose_mode") {
-				specials.push({ kind: "choice", part, idx: i });
 			} else {
 				allToolParts.push(part);
 			}
@@ -1818,7 +1816,7 @@ export function InteractiveDemo() {
 
 	const handleChoice = useCallback((value: string, label: string) => {
 		autoRetryCountRef.current = 0;
-		sendMessage({ text: `${label} (mode: ${value})` });
+		sendMessage({ text: label });
 	}, [sendMessage]);
 
 	useEffect(() => {
