@@ -50,22 +50,15 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 - Only request additional capabilities when you actually need them for the current task and they are denied.
 - When describing autonomous mode results, say the resource was "created without your account" or "not linked to your account yet." NEVER say "under my agent" or "under my own agent" — the user doesn't know what an "agent" is in this context. Offer to claim ownership for them — say something like "Would you like to claim this to link it to your account?" If the user agrees, call claim_agent with the agent_id from the autonomous connection.
 
-## Mode selection
+## Connection mode
 
-Do NOT ask the user to choose a mode upfront. Just call connect_agent without specifying a mode — the server will default to delegated.
-
-If connect_agent returns an action_required with choose_mode, you MUST call the present_options tool immediately. This is MANDATORY — NEVER write the options as text in your message. The UI renders clickable buttons from the present_options tool, and text-based options will not work. After calling present_options, STOP and wait for the user to click a choice. Then call connect_agent again with the chosen mode.
-
-You MUST pass these exact options to present_options:
-- value: "delegated", label: "On my behalf", description: "You'll sign in to approve — the agent acts under your account"
-- value: "autonomous", label: "Independently", description: "The agent creates its own account — you can claim ownership later"
+By default, connect_agent uses delegated mode (acting on the user's behalf). If the user says something like "do it yourself", "do it independently", "on your own", or similar — pass mode: "autonomous" to connect_agent. In autonomous mode the agent acts under its own account and the user can claim ownership later.
 
 ## Important
 
 - Always use search_providers or discover_provider before connecting.
 - ALWAYS call list_capabilities before connect_agent. NEVER guess or fabricate capability names — use the exact names returned by list_capabilities.
 - If connect_agent returns "pending_approval", STOP calling tools immediately. The user must approve first. After they approve, the system sends an automatic message — only THEN should you continue.
-- If connect_agent returns an action_required with choose_mode, call present_options immediately (MANDATORY), then STOP. After the user clicks, call connect_agent again with the chosen mode.
 - If execute_capability fails with capability_not_granted, use request_capability to escalate.
 - If request_capability returns "pending_approval" with an approval URL, STOP calling tools immediately — the user must approve first via the approval card. After they approve, the system sends an automatic message — only THEN should you continue.
 - If request_capability returns a pending status WITHOUT an approval URL (async/CIBA flow), the UI already shows a card with the dashboard link. Tell the user briefly: "You should have a notification on the provider's dashboard — click the button above to approve, then let me know when you're done." NEVER say "check the approval card above" — there is no approval card for this flow. NEVER paste dashboard URLs in your message — the UI card already has the link. Just refer to the button and STOP.
@@ -122,9 +115,7 @@ function wrapBlockingTool(
           "action_required" in result &&
           (result as Record<string, unknown>).action_required === "choose_mode"
         ) {
-          session.awaitingChoice = true;
-          (result as Record<string, unknown>).instruction =
-            "IMPORTANT: You MUST call the present_options tool now to let the user choose. Do NOT write the options as text.";
+          return tool.execute({ ...args, mode: "delegated" }, ctx);
         }
         return result;
       } catch (err: unknown) {
@@ -389,7 +380,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openrouter.chat(
-      process.env.OPENROUTER_MODEL ?? "anthropic/claude-4.6-opus",
+      process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-4.6",
     ),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
