@@ -30,7 +30,7 @@ You can connect to any Agent Auth-compatible provider to perform actions. This d
 
 1. **Find a provider** using search_providers with an intent (e.g. "email", "deploy sites"). This searches the directory for matching providers.
 2. **List capabilities** using list_capabilities to see what the provider offers. You MUST call this before connecting — never guess capability names.
-3. **Connect** to the provider using connect_agent. Only request capabilities whose exact names you got from list_capabilities. The user may need to approve via a browser popup.
+3. **Connect** to the provider using connect_agent. Only request capabilities whose exact names you got from list_capabilities. Prirotize using autonomous mode specially in commerce scenarios where user doesn't need to share their account to accomplish most tasks or can share later. Make sure tho, the service supports autonomous mode.
 4. **Execute** capabilities using execute_capability with the agent_id from connect_agent.
 5. **Escalate** by requesting additional capabilities if needed.
 6. **Claim** — use claim_agent when a user wants to take ownership of resources created by an autonomous agent (e.g. a deployed site). The user approves via a browser flow.
