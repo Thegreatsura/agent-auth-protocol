@@ -16,6 +16,13 @@ The Agent Auth Protocol solves three fundamental problems:
 
 The root cause is simple: **agents today do not have identity.** This protocol gives them one.
 
+## Status
+
+- **v1.0** — published. Read the spec at [agent-auth-protocol.com/specification](https://agent-auth-protocol.com/specification).
+- **v2.0** — in active design. A grant-centric redesign covering capability-scoped grants, host attestation for first-contact, sub-agent derivation, and a normalized approval envelope (CIBA / device flows / inline). Public RFC + draft spec coming soon.
+
+Issues and feedback are welcome.
+
 ## Specification
 
 Read the full specification at [agent-auth-protocol.com/specification](https://agent-auth-protocol.com/specification).
